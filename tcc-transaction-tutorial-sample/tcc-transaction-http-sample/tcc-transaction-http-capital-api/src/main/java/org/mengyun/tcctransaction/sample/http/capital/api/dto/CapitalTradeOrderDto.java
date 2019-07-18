@@ -4,20 +4,34 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
+ * 转账 DTO
  * Created by changming.xie on 4/1/16.
  */
 public class CapitalTradeOrderDto implements Serializable {
 
     private static final long serialVersionUID = 6627401903410124642L;
-    
+
+    /**
+     * from 账号
+     */
     private long selfUserId;
 
+    /**
+     * to 账号
+     */
     private long oppositeUserId;
 
     private String orderTitle;
 
+    /**
+     * 订单编号
+     */
     private String merchantOrderNo;
 
+    /**
+     * 金额
+     *
+     */
     private BigDecimal amount;
 
     public long getSelfUserId() {

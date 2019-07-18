@@ -43,7 +43,8 @@ public class CompensableTransactionInterceptor {
         boolean isTransactionActive = transactionManager.isTransactionActive();
 
         if (!TransactionUtils.isLegalTransactionContext(isTransactionActive, compensableMethodContext)) {
-            throw new SystemException("no active compensable transaction while propagation is mandatory for method " + compensableMethodContext.getMethod().getName());
+            throw new SystemException("no active compensable transaction while propagation is mandatory for method "
+                + compensableMethodContext.getMethod().getName());
         }
 
         switch (compensableMethodContext.getMethodRole(isTransactionActive)) {
@@ -55,7 +56,6 @@ public class CompensableTransactionInterceptor {
                 return pjp.proceed();
         }
     }
-
 
     private Object rootMethodProceed(CompensableMethodContext compensableMethodContext) throws Throwable {
 
@@ -69,7 +69,8 @@ public class CompensableTransactionInterceptor {
 
         Set<Class<? extends Exception>> allDelayCancelExceptions = new HashSet<Class<? extends Exception>>();
         allDelayCancelExceptions.addAll(this.delayCancelExceptions);
-        allDelayCancelExceptions.addAll(Arrays.asList(compensableMethodContext.getAnnotation().delayCancelExceptions()));
+        allDelayCancelExceptions
+            .addAll(Arrays.asList(compensableMethodContext.getAnnotation().delayCancelExceptions()));
 
         try {
 
@@ -81,7 +82,8 @@ public class CompensableTransactionInterceptor {
 
                 if (!isDelayCancelException(tryingException, allDelayCancelExceptions)) {
 
-                    logger.warn(String.format("compensable transaction trying failed. transaction content:%s", JSON.toJSONString(transaction)), tryingException);
+                    logger.warn(String.format("compensable transaction trying failed. transaction content:%s",
+                        JSON.toJSONString(transaction)), tryingException);
 
                     transactionManager.rollback(asyncCancel);
                 }
@@ -102,7 +104,6 @@ public class CompensableTransactionInterceptor {
 
         Transaction transaction = null;
 
-
         boolean asyncConfirm = compensableMethodContext.getAnnotation().asyncConfirm();
 
         boolean asyncCancel = compensableMethodContext.getAnnotation().asyncCancel();
@@ -111,23 +112,26 @@ public class CompensableTransactionInterceptor {
 
             switch (TransactionStatus.valueOf(compensableMethodContext.getTransactionContext().getStatus())) {
                 case TRYING:
-                    transaction = transactionManager.propagationNewBegin(compensableMethodContext.getTransactionContext());
+                    transaction =
+                        transactionManager.propagationNewBegin(compensableMethodContext.getTransactionContext());
                     return compensableMethodContext.proceed();
                 case CONFIRMING:
                     try {
-                        transaction = transactionManager.propagationExistBegin(compensableMethodContext.getTransactionContext());
+                        transaction =
+                            transactionManager.propagationExistBegin(compensableMethodContext.getTransactionContext());
                         transactionManager.commit(asyncConfirm);
                     } catch (NoExistedTransactionException excepton) {
-                        //the transaction has been commit,ignore it.
+                        // the transaction has been commit,ignore it.
                     }
                     break;
                 case CANCELLING:
 
                     try {
-                        transaction = transactionManager.propagationExistBegin(compensableMethodContext.getTransactionContext());
+                        transaction =
+                            transactionManager.propagationExistBegin(compensableMethodContext.getTransactionContext());
                         transactionManager.rollback(asyncCancel);
                     } catch (NoExistedTransactionException exception) {
-                        //the transaction has been rollback,ignore it.
+                        // the transaction has been rollback,ignore it.
                     }
                     break;
             }
@@ -149,7 +153,7 @@ public class CompensableTransactionInterceptor {
                 Throwable rootCause = ExceptionUtils.getRootCause(throwable);
 
                 if (delayCancelException.isAssignableFrom(throwable.getClass())
-                        || (rootCause != null && delayCancelException.isAssignableFrom(rootCause.getClass()))) {
+                    || (rootCause != null && delayCancelException.isAssignableFrom(rootCause.getClass()))) {
                     return true;
                 }
             }

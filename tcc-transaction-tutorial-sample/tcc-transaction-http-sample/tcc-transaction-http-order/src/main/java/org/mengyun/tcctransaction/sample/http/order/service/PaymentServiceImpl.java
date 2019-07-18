@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
- * Created by changming.xie on 4/1/16.
+ * 支付逻辑 Created by changming.xie on 4/1/16.
  */
 @Service
 public class PaymentServiceImpl {
@@ -26,43 +26,45 @@ public class PaymentServiceImpl {
     @Autowired
     OrderRepository orderRepository;
 
-
     @Compensable(confirmMethod = "confirmMakePayment", cancelMethod = "cancelMakePayment", asyncConfirm = true)
     @Transactional
     public void makePayment(Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
 
-        System.out.println("order try make payment called.time seq:" + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
+        System.out.println("order try make payment called.time seq:"
+            + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
 
-        //check if the order status is DRAFT, if no, means that another call makePayment for the same order happened, ignore this call makePayment.
+        // check if the order status is DRAFT, if no, means that another call makePayment for the same order happened,
+        // ignore this call makePayment.
         if (order.getStatus().equals("DRAFT")) {
-
+            // 支付状态修改成支付中
             order.pay(redPacketPayAmount, capitalPayAmount);
             try {
                 orderRepository.updateOrder(order);
             } catch (OptimisticLockingFailureException e) {
-                //ignore the concurrently update order exception, ensure idempotency.
+                // ignore the concurrently update order exception, ensure idempotency.
             }
         }
-
-        String result = tradeOrderServiceProxy.record(null, buildCapitalTradeOrderDto(order));
-        String result2 = tradeOrderServiceProxy.record(null, buildRedPacketTradeOrderDto(order));
+        // 转账
+        tradeOrderServiceProxy.record(null, buildCapitalTradeOrderDto(order));
+        // 发红包
+        tradeOrderServiceProxy.record(null, buildRedPacketTradeOrderDto(order));
     }
 
     public void confirmMakePayment(Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
-
-
         try {
             Thread.sleep(1000l);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("order confirm make payment called. time seq:" + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
+        System.out.println("order confirm make payment called. time seq:"
+            + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
 
         Order foundOrder = orderRepository.findByMerchantOrderNo(order.getMerchantOrderNo());
 
-        //check order status, only if the status equals DRAFT, then confirm order
+        // check order status, only if the status equals DRAFT, then confirm order
         if (foundOrder != null && foundOrder.getStatus().equals("PAYING")) {
+            //订单状态改为已确认
             order.confirm();
             orderRepository.updateOrder(order);
         }
@@ -70,23 +72,22 @@ public class PaymentServiceImpl {
 
     public void cancelMakePayment(Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
 
-
         try {
             Thread.sleep(1000l);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("order cancel make payment called.time seq:" + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
+        System.out.println("order cancel make payment called.time seq:"
+            + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
 
         Order foundOrder = orderRepository.findByMerchantOrderNo(order.getMerchantOrderNo());
-
+        //订单状态改为支付失败
         if (foundOrder != null && foundOrder.getStatus().equals("PAYING")) {
             order.cancelPayment();
             orderRepository.updateOrder(order);
         }
     }
-
 
     private CapitalTradeOrderDto buildCapitalTradeOrderDto(Order order) {
 

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Calendar;
 
 /**
+ * 转账逻辑
  * Created by changming.xie on 4/2/16.
  */
 public class CapitalTradeOrderServiceImpl implements CapitalTradeOrderService {
@@ -27,8 +28,16 @@ public class CapitalTradeOrderServiceImpl implements CapitalTradeOrderService {
     @Autowired
     TradeOrderRepository tradeOrderRepository;
 
+
+    /**
+     * try
+     * @param transactionContext
+     * @param tradeOrderDto
+     * @return
+     */
     @Override
-    @Compensable(confirmMethod = "confirmRecord", cancelMethod = "cancelRecord", transactionContextEditor = MethodTransactionContextEditor.class)
+    @Compensable(confirmMethod = "confirmRecord", cancelMethod = "cancelRecord",
+        transactionContextEditor = MethodTransactionContextEditor.class)
     @Transactional
     public String record(TransactionContext transactionContext, CapitalTradeOrderDto tradeOrderDto) {
 
@@ -38,36 +47,40 @@ public class CapitalTradeOrderServiceImpl implements CapitalTradeOrderService {
             throw new RuntimeException(e);
         }
 
-        System.out.println("capital try record called. time seq:" + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
-
+        System.out.println("capital try record called. time seq:"
+            + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
+        // 交易订单
         TradeOrder foundTradeOrder = tradeOrderRepository.findByMerchantOrderNo(tradeOrderDto.getMerchantOrderNo());
 
-        //check if trade order has been recorded, if yes, return success directly.
+        // check if trade order has been recorded, if yes, return success directly.
         if (foundTradeOrder == null) {
 
-            TradeOrder tradeOrder = new TradeOrder(
-                    tradeOrderDto.getSelfUserId(),
-                    tradeOrderDto.getOppositeUserId(),
-                    tradeOrderDto.getMerchantOrderNo(),
-                    tradeOrderDto.getAmount()
-            );
+            TradeOrder tradeOrder = new TradeOrder(tradeOrderDto.getSelfUserId(), tradeOrderDto.getOppositeUserId(),
+                tradeOrderDto.getMerchantOrderNo(), tradeOrderDto.getAmount());
 
             try {
                 tradeOrderRepository.insert(tradeOrder);
 
-                CapitalAccount transferFromAccount = capitalAccountRepository.findByUserId(tradeOrderDto.getSelfUserId());
+                CapitalAccount transferFromAccount =
+                    capitalAccountRepository.findByUserId(tradeOrderDto.getSelfUserId());
 
                 transferFromAccount.transferFrom(tradeOrderDto.getAmount());
 
                 capitalAccountRepository.save(transferFromAccount);
             } catch (DataIntegrityViolationException e) {
-                //this exception may happen when insert trade order concurrently, if happened, ignore this insert operation.
+                // this exception may happen when insert trade order concurrently, if happened, ignore this insert
+                // operation.
             }
         }
 
         return "success";
     }
 
+    /**
+     * confirm
+     * @param transactionContext
+     * @param tradeOrderDto
+     */
     @Transactional
     public void confirmRecord(TransactionContext transactionContext, CapitalTradeOrderDto tradeOrderDto) {
 
@@ -77,11 +90,12 @@ public class CapitalTradeOrderServiceImpl implements CapitalTradeOrderService {
             throw new RuntimeException(e);
         }
 
-        System.out.println("capital confirm record called. time seq:" + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
+        System.out.println("capital confirm record called. time seq:"
+            + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
 
         TradeOrder tradeOrder = tradeOrderRepository.findByMerchantOrderNo(tradeOrderDto.getMerchantOrderNo());
 
-        //check if the trade order status is DRAFT, if yes, return directly, ensure idempotency.
+        // check if the trade order status is DRAFT, if yes, return directly, ensure idempotency.
         if (null != tradeOrder && "DRAFT".equals(tradeOrder.getStatus())) {
             tradeOrder.confirm();
             tradeOrderRepository.update(tradeOrder);
@@ -94,6 +108,11 @@ public class CapitalTradeOrderServiceImpl implements CapitalTradeOrderService {
         }
     }
 
+    /**
+     * cancel
+     * @param transactionContext
+     * @param tradeOrderDto
+     */
     @Transactional
     public void cancelRecord(TransactionContext transactionContext, CapitalTradeOrderDto tradeOrderDto) {
 
@@ -103,11 +122,12 @@ public class CapitalTradeOrderServiceImpl implements CapitalTradeOrderService {
             throw new RuntimeException(e);
         }
 
-        System.out.println("capital cancel record called. time seq:" + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
+        System.out.println("capital cancel record called. time seq:"
+            + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
 
         TradeOrder tradeOrder = tradeOrderRepository.findByMerchantOrderNo(tradeOrderDto.getMerchantOrderNo());
 
-        //check if the trade order status is DRAFT, if yes, return directly, ensure idempotency.
+        // check if the trade order status is DRAFT, if yes, return directly, ensure idempotency.
         if (null != tradeOrder && "DRAFT".equals(tradeOrder.getStatus())) {
             tradeOrder.cancel();
             tradeOrderRepository.update(tradeOrder);

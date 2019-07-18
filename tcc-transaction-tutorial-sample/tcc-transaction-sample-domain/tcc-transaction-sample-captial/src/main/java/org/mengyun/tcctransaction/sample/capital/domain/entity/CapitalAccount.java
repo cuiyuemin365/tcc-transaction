@@ -15,8 +15,14 @@ public class CapitalAccount {
 
     private long userId;
 
+    /**
+     * 账户余额
+     */
     private BigDecimal balanceAmount;
 
+    /**
+     * 交易额
+     */
     private BigDecimal transferAmount = BigDecimal.ZERO;
 
     public long getUserId() {
@@ -36,6 +42,11 @@ public class CapitalAccount {
         this.id = id;
     }
 
+    /**
+     * balanceAmount扣减
+     * transferAmount添加
+     * @param amount
+     */
     public void transferFrom(BigDecimal amount) {
 
         this.balanceAmount = this.balanceAmount.subtract(amount);
