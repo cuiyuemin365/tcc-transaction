@@ -13,13 +13,29 @@ import java.lang.reflect.Method;
 @Target({ElementType.METHOD})
 public @interface Compensable {
 
+    /**
+     * 事务传播级别
+     * 
+     * @return
+     */
     public Propagation propagation() default Propagation.REQUIRED;
 
+    /**
+     * 提交方法
+     * 
+     * @return
+     */
     public String confirmMethod() default "";
 
+    /**
+     * 取消方法
+     * 
+     * @return
+     */
     public String cancelMethod() default "";
 
-    public Class<? extends TransactionContextEditor> transactionContextEditor() default DefaultTransactionContextEditor.class;
+    public Class<
+        ? extends TransactionContextEditor> transactionContextEditor() default DefaultTransactionContextEditor.class;
 
     public Class<? extends Exception>[] delayCancelExceptions() default {};
 
@@ -47,7 +63,7 @@ public @interface Compensable {
             int position = getTransactionContextParamPosition(method.getParameterTypes());
 
             if (position >= 0) {
-                return (TransactionContext) args[position];
+                return (TransactionContext)args[position];
             }
 
             return null;
@@ -80,9 +96,10 @@ public @interface Compensable {
             TransactionContext transactionContext = null;
 
             for (Object arg : args) {
-                if (arg != null && org.mengyun.tcctransaction.api.TransactionContext.class.isAssignableFrom(arg.getClass())) {
+                if (arg != null
+                    && org.mengyun.tcctransaction.api.TransactionContext.class.isAssignableFrom(arg.getClass())) {
 
-                    transactionContext = (org.mengyun.tcctransaction.api.TransactionContext) arg;
+                    transactionContext = (org.mengyun.tcctransaction.api.TransactionContext)arg;
                 }
             }
 

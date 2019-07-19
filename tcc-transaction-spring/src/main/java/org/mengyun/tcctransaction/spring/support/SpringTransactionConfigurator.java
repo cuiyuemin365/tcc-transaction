@@ -24,7 +24,6 @@ public class SpringTransactionConfigurator implements TransactionConfigurator {
     @Autowired(required = false)
     private RecoverConfig recoverConfig = DefaultRecoverConfig.INSTANCE;
 
-
     private TransactionManager transactionManager;
 
     public void init() {

@@ -39,7 +39,7 @@ public class CompensableTransactionInterceptor {
     public Object interceptCompensableMethod(ProceedingJoinPoint pjp) throws Throwable {
 
         CompensableMethodContext compensableMethodContext = new CompensableMethodContext(pjp);
-
+        logger.info("上下文信息:" + JSON.toJSONString(compensableMethodContext, true));
         boolean isTransactionActive = transactionManager.isTransactionActive();
 
         if (!TransactionUtils.isLegalTransactionContext(isTransactionActive, compensableMethodContext)) {
@@ -47,16 +47,27 @@ public class CompensableTransactionInterceptor {
                 + compensableMethodContext.getMethod().getName());
         }
 
+        logger.info("当前方法" + JSON.toJSONString(compensableMethodContext.getMethod().getName(), true));
         switch (compensableMethodContext.getMethodRole(isTransactionActive)) {
             case ROOT:
+                logger.info("当前方法是 ROOT 方法");
                 return rootMethodProceed(compensableMethodContext);
             case PROVIDER:
+                logger.info("当前方法是 PROVIDER 方法");
                 return providerMethodProceed(compensableMethodContext);
             default:
+                logger.info("当前方法是 default 方法");
                 return pjp.proceed();
         }
     }
 
+    /**
+     * root方法逻辑
+     * 
+     * @param compensableMethodContext
+     * @return
+     * @throws Throwable
+     */
     private Object rootMethodProceed(CompensableMethodContext compensableMethodContext) throws Throwable {
 
         Object returnValue = null;
@@ -73,9 +84,8 @@ public class CompensableTransactionInterceptor {
             .addAll(Arrays.asList(compensableMethodContext.getAnnotation().delayCancelExceptions()));
 
         try {
-
             transaction = transactionManager.begin(compensableMethodContext.getUniqueIdentity());
-
+            logger.info("开始事务:" + JSON.toJSONString(transaction, true));
             try {
                 returnValue = compensableMethodContext.proceed();
             } catch (Throwable tryingException) {
@@ -90,9 +100,11 @@ public class CompensableTransactionInterceptor {
 
                 throw tryingException;
             }
-
+            logger.info("提交事务:" + JSON.toJSONString(transaction, true));
             transactionManager.commit(asyncConfirm);
 
+        } catch (Throwable throwable) {
+            logger.warn(JSON.toJSONString(throwable));
         } finally {
             transactionManager.cleanAfterCompletion(transaction);
         }

@@ -2,6 +2,7 @@ package org.mengyun.tcctransaction.sample.http.order.service;
 
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.mengyun.tcctransaction.api.Compensable;
+import org.mengyun.tcctransaction.api.UniqueIdentity;
 import org.mengyun.tcctransaction.sample.http.capital.api.dto.CapitalTradeOrderDto;
 import org.mengyun.tcctransaction.sample.http.redpacket.api.dto.RedPacketTradeOrderDto;
 import org.mengyun.tcctransaction.sample.order.domain.entity.Order;
@@ -28,7 +29,8 @@ public class PaymentServiceImpl {
 
     @Compensable(confirmMethod = "confirmMakePayment", cancelMethod = "cancelMakePayment", asyncConfirm = true)
     @Transactional
-    public void makePayment(Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
+    public void makePayment(@UniqueIdentity String orderNo, Order order, BigDecimal redPacketPayAmount,
+        BigDecimal capitalPayAmount) {
 
         System.out.println("order try make payment called.time seq:"
             + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
@@ -50,7 +52,7 @@ public class PaymentServiceImpl {
         tradeOrderServiceProxy.record(null, buildRedPacketTradeOrderDto(order));
     }
 
-    public void confirmMakePayment(Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
+    public void confirmMakePayment(@UniqueIdentity String orderNo,Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
         try {
             Thread.sleep(1000l);
         } catch (InterruptedException e) {
@@ -64,13 +66,13 @@ public class PaymentServiceImpl {
 
         // check order status, only if the status equals DRAFT, then confirm order
         if (foundOrder != null && foundOrder.getStatus().equals("PAYING")) {
-            //订单状态改为已确认
+            // 订单状态改为已确认
             order.confirm();
             orderRepository.updateOrder(order);
         }
     }
 
-    public void cancelMakePayment(Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
+    public void cancelMakePayment(@UniqueIdentity String orderNo,Order order, BigDecimal redPacketPayAmount, BigDecimal capitalPayAmount) {
 
         try {
             Thread.sleep(1000l);
@@ -82,7 +84,7 @@ public class PaymentServiceImpl {
             + DateFormatUtils.format(Calendar.getInstance(), "yyyy-MM-dd HH:mm:ss"));
 
         Order foundOrder = orderRepository.findByMerchantOrderNo(order.getMerchantOrderNo());
-        //订单状态改为支付失败
+        // 订单状态改为支付失败
         if (foundOrder != null && foundOrder.getStatus().equals("PAYING")) {
             order.cancelPayment();
             orderRepository.updateOrder(order);
