@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.mengyun.tcctransaction.NoExistedTransactionException;
 import org.mengyun.tcctransaction.SystemException;
 import org.mengyun.tcctransaction.Transaction;
@@ -37,9 +38,10 @@ public class CompensableTransactionInterceptor {
     }
 
     public Object interceptCompensableMethod(ProceedingJoinPoint pjp) throws Throwable {
-
+        logger.info("执行方法前:" + pjp.getTarget().getClass().getName() + ":"
+            + ((MethodSignature)(pjp.getSignature())).getMethod().getName());
         CompensableMethodContext compensableMethodContext = new CompensableMethodContext(pjp);
-        logger.info("上下文信息:" + JSON.toJSONString(compensableMethodContext, true));
+        logger.info("上下文信息:" + JSON.toJSONString(compensableMethodContext));
         boolean isTransactionActive = transactionManager.isTransactionActive();
 
         if (!TransactionUtils.isLegalTransactionContext(isTransactionActive, compensableMethodContext)) {
@@ -47,17 +49,22 @@ public class CompensableTransactionInterceptor {
                 + compensableMethodContext.getMethod().getName());
         }
 
-        logger.info("当前方法" + JSON.toJSONString(compensableMethodContext.getMethod().getName(), true));
-        switch (compensableMethodContext.getMethodRole(isTransactionActive)) {
-            case ROOT:
-                logger.info("当前方法是 ROOT 方法");
-                return rootMethodProceed(compensableMethodContext);
-            case PROVIDER:
-                logger.info("当前方法是 PROVIDER 方法");
-                return providerMethodProceed(compensableMethodContext);
-            default:
-                logger.info("当前方法是 default 方法");
-                return pjp.proceed();
+        logger.info("当前方法" + JSON.toJSONString(compensableMethodContext.getMethod().getName()));
+        try {
+            switch (compensableMethodContext.getMethodRole(isTransactionActive)) {
+                case ROOT:
+                    logger.info("当前方法是 ROOT 方法");
+                    return rootMethodProceed(compensableMethodContext);
+                case PROVIDER:
+                    logger.info("当前方法是 PROVIDER 方法");
+                    return providerMethodProceed(compensableMethodContext);
+                default:
+                    logger.info("当前方法是 default 方法");
+                    return pjp.proceed();
+            }
+        } finally {
+            logger.info("执行方法后:" + pjp.getTarget().getClass().getName() + ":"
+                    + ((MethodSignature)(pjp.getSignature())).getMethod().getName());
         }
     }
 

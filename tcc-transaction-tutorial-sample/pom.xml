@@ -12,7 +12,6 @@
     <artifactId>tcc-transaction-tutorial-sample</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>tcc-transaction-dubbo-sample</module>
         <module>tcc-transaction-http-sample</module>
         <module>tcc-transaction-server-sample</module>
         <module>tcc-transaction-sample-domain</module>

@@ -1,5 +1,6 @@
 package org.mengyun.tcctransaction.interceptor;
 
+import org.apache.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.mengyun.tcctransaction.InvocationContext;
@@ -21,6 +22,9 @@ import java.lang.reflect.Method;
  */
 public class ResourceCoordinatorInterceptor {
 
+
+    static final Logger logger = Logger.getLogger(ResourceCoordinatorInterceptor.class.getSimpleName());
+
     private TransactionManager transactionManager;
 
 
@@ -29,7 +33,8 @@ public class ResourceCoordinatorInterceptor {
     }
 
     public Object interceptTransactionContextMethod(ProceedingJoinPoint pjp) throws Throwable {
-
+        logger.info("执行方法前:" + pjp.getTarget().getClass().getName() + ":"
+                + ((MethodSignature)(pjp.getSignature())).getMethod().getName());
         Transaction transaction = transactionManager.getCurrentTransaction();
 
         if (transaction != null) {
@@ -45,7 +50,12 @@ public class ResourceCoordinatorInterceptor {
             }
         }
 
-        return pjp.proceed(pjp.getArgs());
+        try {
+            return pjp.proceed(pjp.getArgs());
+        } finally {
+            logger.info("执行方法后:" + pjp.getTarget().getClass().getName() + ":"
+                    + ((MethodSignature)(pjp.getSignature())).getMethod().getName());
+        }
     }
 
     private void enlistParticipant(ProceedingJoinPoint pjp) throws IllegalAccessException, InstantiationException {
